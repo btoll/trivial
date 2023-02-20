@@ -2,12 +2,12 @@
 
 ## Endpoints
 
-- `/kill`
-- `/message`
-- `/notify`
-- `/query`
-- `/reset`
-- `/scoreboard`
+- [`/kill`](https://pkg.go.dev/github.com/btoll/trivial#SocketServer.KillHandler)
+- [`/message`](https://pkg.go.dev/github.com/btoll/trivial#SocketServer.MessageHandler)
+- [`/notify`](https://pkg.go.dev/github.com/btoll/trivial#SocketServer.NotifyHandler)
+- [`/query`](https://pkg.go.dev/github.com/btoll/trivial#SocketServer.QueryHandler)
+- [`/reset`](https://pkg.go.dev/github.com/btoll/trivial#SocketServer.ResetHandler)
+- [`/scoreboard`](https://pkg.go.dev/github.com/btoll/trivial#SocketServer.ScoreboardHandler)
 
 ## Serve the docs
 

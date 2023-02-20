@@ -76,9 +76,7 @@ func apiKey(n int) string {
 }
 
 func generateKey(length int, seconds float64) APIKey {
-	// TODO turn this back on, it's only off so it doesn't change.
-	// Makes dev work easier.
-	//	rand.Seed(time.Now().UTC().UnixNano())
+	rand.Seed(time.Now().UTC().UnixNano())
 	return APIKey{
 		Key:         apiKey(length),
 		TimeCreated: time.Now().UTC(),
