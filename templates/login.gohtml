@@ -1,0 +1,22 @@
+{{ define "login" }}
+<form id="login">
+    <p>
+    <label for="username">Username</label>
+    <input id="username" name="username" type="text" maxlength="22">
+    </p>
+
+    <p>
+    <label for="token">Token</label>
+    <input id="token" name="token" type="text">
+    </p>
+
+    <!-- The label only exists to align the button. -->
+    <p>
+    <label class="transparent">foo</label>
+    <input id="submitLogin" name="submitLogin" value="Enter" type="submit">
+    </p>
+
+    <p id="loginError"></p>
+</form>
+{{ end }}
+
