@@ -139,134 +139,142 @@ func (s *SocketServer) DefaultHandler(socket *websocket.Conn) {
 		// new players from joining (see the "login" case below).
 		game, err := s.GetGame(msg.Token)
 		if err != nil {
-			log.Fatalln(err)
-		}
-
-		switch msg.Type {
-		case "login":
-			username := strings.TrimSpace(msg.Username)
-			player, benched := game.HasPlayer(msg.Username)
-			if player != nil {
-				if benched {
-					game.Unbench(player)
-					player.Socket = socket
-					err = s.Publish(game, ServerMessage{
-						Type: "player_add",
-						Data: game.Players,
-					})
-					if err != nil {
-						log.Fatalln(err)
-					}
-				} else {
-					b, err := json.Marshal(ServerMessage{
-						Type: "error",
-						Data: fmt.Sprintf("Username `%s` exists, choose another", username),
-					})
-					if err != nil {
-						fmt.Println("marshall error:", err)
-					} else {
-						// TODO: check if this actually sent?
-						socket.Write(b)
-					}
-				}
-			} else {
-				fmt.Println("received data from client", string(data))
-				err = game.CheckTokenExpiration()
-				if err != nil {
-					b, err := json.Marshal(ServerMessage{
-						Type: "error",
-						Data: fmt.Sprintf("%s", "Game has expired"),
-					})
-					if err != nil {
-						log.Fatalln(err)
-					}
-					socket.Write(b)
-				} else {
-					parsedUrl, err := url.Parse(fmt.Sprintf("%s", location))
-					if err != nil {
-						fmt.Println("url.Parse error:", err)
-					}
-					uuid := strings.Split(parsedUrl.RawQuery, "=")
-					newPlayer := &Player{
-						Location: fmt.Sprintf("%s", origin),
-						Name:     username,
-						UUID:     uuid[1],
-						Score:    0,
-						Socket:   socket,
-					}
-					game.Players = append(game.Players, newPlayer)
-					err = s.Publish(game, ServerMessage{
-						Type: "player_add",
-						Data: game.Players,
-					})
-					if err != nil {
-						log.Fatalln(err)
-					}
-				}
-			}
-		case "guess":
-			// Note that we're also doing this above.
-			// Should this be done for every received message?
-			player, err := game.GetPlayer(socket)
-			if err != nil {
-				fmt.Println("read error:", err)
-			}
-
-			// First, message the player individually if the answer was correct (or not).
-			// TODO: This probably needs revisited...
-			res := true
-			switch vv := msg.Data.(type) {
-			case string:
-				res = game.CurrentQuestion.Answer == vv
-			case []interface{}:
-				correctAnswers := strings.Split(game.CurrentQuestion.Answer, ",")
-				sort.Strings(correctAnswers)
-				if len(correctAnswers) != len(vv) {
-					res = false
-					break
-				}
-				for i, char := range vv {
-					if char != correctAnswers[i] {
-						res = false
-						break
-					}
-				}
-			}
-			// Second, if the answer is correct, update everyone.
 			b, err := json.Marshal(ServerMessage{
-				Type: "player_message",
-				Data: res,
+				Type: "error",
+				Data: fmt.Sprintf("There has been a problem accessing game `%s`", msg.Token),
 			})
 			if err != nil {
 				fmt.Println("marshall error:", err)
 			} else {
-				// TODO: check if this actually sent?
 				socket.Write(b)
 			}
-			if res {
-				_, err := game.UpdatePlayerScore(socket, game.CurrentQuestion.Weight)
-				if err != nil {
-					log.Fatalln(err)
+		} else {
+			switch msg.Type {
+			case "login":
+				username := strings.TrimSpace(msg.Username)
+				player, benched := game.HasPlayer(msg.Username)
+				if player != nil {
+					if benched {
+						game.Unbench(player)
+						player.Socket = socket
+						err = s.Publish(game, ServerMessage{
+							Type: "player_add",
+							Data: game.Players,
+						})
+						if err != nil {
+							log.Fatalln(err)
+						}
+					} else {
+						b, err := json.Marshal(ServerMessage{
+							Type: "error",
+							Data: fmt.Sprintf("Username `%s` exists, choose another", username),
+						})
+						if err != nil {
+							fmt.Println("marshall error:", err)
+						} else {
+							// TODO: check if this actually sent?
+							socket.Write(b)
+						}
+					}
+				} else {
+					fmt.Println("received data from client", string(data))
+					err = game.CheckTokenExpiration()
+					if err != nil {
+						b, err := json.Marshal(ServerMessage{
+							Type: "error",
+							Data: fmt.Sprintf("%s", "Game has expired"),
+						})
+						if err != nil {
+							log.Fatalln(err)
+						}
+						socket.Write(b)
+					} else {
+						parsedUrl, err := url.Parse(fmt.Sprintf("%s", location))
+						if err != nil {
+							fmt.Println("url.Parse error:", err)
+						}
+						uuid := strings.Split(parsedUrl.RawQuery, "=")
+						newPlayer := &Player{
+							Location: fmt.Sprintf("%s", origin),
+							Name:     username,
+							UUID:     uuid[1],
+							Score:    0,
+							Socket:   socket,
+						}
+						game.Players = append(game.Players, newPlayer)
+						err = s.Publish(game, ServerMessage{
+							Type: "player_add",
+							Data: game.Players,
+						})
+						if err != nil {
+							log.Fatalln(err)
+						}
+					}
 				}
-				fmt.Printf("%s correctly guessed %s, %d current points\n",
-					player.Name,
-					msg.Data,
-					player.Score)
-				err = s.Publish(game, ServerMessage{
-					Type: "update_scoreboard",
-					Data: game.Players,
+			case "guess":
+				// Note that we're also doing this above.
+				// Should this be done for every received message?
+				player, err := game.GetPlayer(socket)
+				if err != nil {
+					fmt.Println("read error:", err)
+				}
+
+				// First, message the player individually if the answer was correct (or not).
+				// TODO: This probably needs revisited...
+				res := true
+				switch vv := msg.Data.(type) {
+				case string:
+					res = game.CurrentQuestion.Answer == vv
+				case []interface{}:
+					correctAnswers := strings.Split(game.CurrentQuestion.Answer, ",")
+					sort.Strings(correctAnswers)
+					if len(correctAnswers) != len(vv) {
+						res = false
+						break
+					}
+					for i, char := range vv {
+						if char != correctAnswers[i] {
+							res = false
+							break
+						}
+					}
+				}
+				// Second, if the answer is correct, update everyone.
+				b, err := json.Marshal(ServerMessage{
+					Type: "player_message",
+					Data: res,
 				})
 				if err != nil {
-					log.Fatalln(err)
+					fmt.Println("marshall error:", err)
+				} else {
+					// TODO: check if this actually sent?
+					socket.Write(b)
 				}
-			} else {
-				fmt.Printf("%s incorrectly guessed %s, %d current points\n",
-					player.Name,
-					msg.Data,
-					player.Score)
+				if res {
+					_, err := game.UpdatePlayerScore(socket, game.CurrentQuestion.Weight)
+					if err != nil {
+						log.Fatalln(err)
+					}
+					fmt.Printf("%s correctly guessed %s, %d current points\n",
+						player.Name,
+						msg.Data,
+						player.Score)
+					err = s.Publish(game, ServerMessage{
+						Type: "update_scoreboard",
+						Data: game.Players,
+					})
+					if err != nil {
+						log.Fatalln(err)
+					}
+				} else {
+					fmt.Printf("%s incorrectly guessed %s, %d current points\n",
+						player.Name,
+						msg.Data,
+						player.Score)
+				}
+			case "question":
+				//todo
 			}
-		case "question":
-			//todo
 		}
 	}
 }
