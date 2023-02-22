@@ -51,6 +51,14 @@ $ i=$((i+1)) && curl -XGET -H "X-TRIVIA-APIKEY: GwCcn6VZntwnI7qp1kly" \
     127.0.0.1:3000/query
 ```
 
+> If using a self-signed TLS certificate, pass the `-k` or `--insecure` switch so `curl` will disable strict certificate checking.
+>
+> ```
+> $ curl --insecure -H "X-TRIVIA-APIKEY: wsj76zSOyxNU93uW8LXhrHms4" \
+>     --data "$(awk 'NR=='$i'' questions/roman_history.csv)" \
+>     127.0.0.1:3000/query
+> ```
+
 ## Binary Search Implementations
 
 - [returns `bool`](https://go.dev/play/p/ch11-8OM-HT)

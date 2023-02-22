@@ -15,14 +15,17 @@ var templateFiles embed.FS
 // A socket server instance is set up to handle
 // multiple (concurrent) games.
 type SocketServer struct {
+	Cert     TLSCert
 	Location URI
 	Games    map[string]*Game
 	Tpl      *template.Template
 }
 
-func NewSocketServer(uri URI) *SocketServer {
+func NewSocketServer(uri URI, cert TLSCert) *SocketServer {
 	fmt.Printf("created new websocket server `%s`\n", uri)
+	generateCert(cert)
 	return &SocketServer{
+		Cert:     cert,
 		Location: uri,
 		Games:    make(map[string]*Game),
 		// `_base.html` file **must** be the first file!!
