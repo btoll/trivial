@@ -85,7 +85,7 @@ func generateKey(length int, seconds float64) APIKey {
 	}
 }
 
-func has(pool GamePlayers, v interface{}) (int, *Player) {
+func has(pool GamePlayers, v any) (int, *Player) {
 	switch vv := v.(type) {
 	case string:
 		for i, player := range pool {
@@ -183,7 +183,7 @@ func (g *Game) CheckTokenExpiration() error {
 // socket, since this cannot be modified by the user. However,
 // when calling an endpoint such as [SocketServer.KillHandler],
 // all we have is the player name.
-func (g *Game) GetPlayer(v interface{}) (*Player, error) {
+func (g *Game) GetPlayer(v any) (*Player, error) {
 	switch vv := v.(type) {
 	case string:
 		for _, player := range g.Players {
