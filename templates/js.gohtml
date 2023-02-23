@@ -153,9 +153,9 @@ document.addEventListener("DOMContentLoaded", event => {
 
     document.getElementById("gameboard").addEventListener("submit", event => {
         const selected = answers.querySelectorAll("input:checked");
-        const v = [];
-        selected.forEach(node => v.push(node.value));
-        sendMsg("guess", v.sort());
+        let total = 0;
+        selected.forEach(node => total += parseInt(node.value, 10));
+        sendMsg("guess", total);
         disableFormInputs();
         event.preventDefault();
     });
@@ -229,22 +229,11 @@ document.addEventListener("DOMContentLoaded", event => {
                 question.innerHTML = parsed.question;
                 weight.innerHTML = `( ${parsed.weight} points )`;
 
-                // Give the options single uppercase letter names
-                // to avoid any spaces or other characters that could
-                // be present in one of the answers and could mangle
-                // something or otherwise cause problems.
-                // 65 decimal == "A" character
-                // 66 decimal == "B" character
-                // 67 decimal == "C" character
-                // ...
-                let n = 65;
-
                 const fragment = new DocumentFragment();
-                const ans = parsed.answer;
-                const len = ans.length
-
-                const allAnswers = ans.split(",");
-                const inputType = allAnswers.length > 1 ?
+                // Recall that the type of option (checkbox or radio)
+                // is encoded into the bitmap:
+                //     10000000 00000000 == checkbox
+                const inputType = parsed.answer >> 15 == 1 ?
                     "checkbox" :
                     "radio";
 
@@ -270,7 +259,7 @@ document.addEventListener("DOMContentLoaded", event => {
                         } else {
                             opt.setAttribute("name", item);
                         }
-                        opt.setAttribute("value", String.fromCharCode(n++));
+                        opt.setAttribute("value", 2**i);
                         label.appendChild(opt);
 
                         const textNode = document.createTextNode(item);
@@ -290,10 +279,9 @@ document.addEventListener("DOMContentLoaded", event => {
                 break;
 
             default:
+                // TODO
                 console.log("unknown data type");
         }
-
-        console.log("RESPONSE: " + event.data);
     });
 });
 {{ end }}

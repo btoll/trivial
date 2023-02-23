@@ -52,10 +52,11 @@ type PlayerScore struct {
 // `Weight` is the amount of points awarded for a
 // correct answer.
 type CurrentQuestion struct {
-	Question string   `json:"question,omitempty"`
-	Answer   string   `json:"answer,omitempty"`
-	Choices  []string `json:"choices,omitempty"`
-	Weight   int      `json:"weight,omitempty"`
+	Question  string   `json:"question,omitempty"`
+	Answer    any      `json:"answer,omitempty"`
+	Choices   []string `json:"choices,omitempty"`
+	Weight    int      `json:"weight,omitempty"`
+	Responses int      `json:"responses,omitempty"`
 }
 
 type Game struct {

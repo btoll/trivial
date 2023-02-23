@@ -4,6 +4,7 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"text/template"
 
 	"golang.org/x/net/websocket"
@@ -69,6 +70,21 @@ type ClientMessage struct {
 	Username string `json:"username,omitempty"`
 	Token    string `json:"token,omitempty"`
 	Data     any    `json:"data,omitempty"`
+}
+
+func makeBitmap(nums []string) uint16 {
+	var total uint16
+	for _, d := range nums {
+		n, err := strconv.ParseUint(d, 10, 16)
+		if err != nil {
+			fmt.Sprintln("%s cannot be converted to an integer, ignoring\n", n)
+			continue
+		}
+		// The answers are entered in as one-based in the CSV.
+		// TODO: Should this be done here or in the caller?
+		total += 1 << (n - 1)
+	}
+	return total
 }
 
 // A socket server instance can potentially have multiple games.

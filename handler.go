@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -155,64 +154,83 @@ func (s *SocketServer) DefaultHandler(socket *websocket.Conn) {
 				// Should this be done for every received message?
 				player, err := game.GetPlayer(socket)
 				if err != nil {
-					fmt.Println("read error:", err)
-				}
-
-				// First, message the player individually if the answer was correct (or not).
-				// TODO: This probably needs revisited...
-				res := true
-				switch vv := msg.Data.(type) {
-				case string:
-					res = game.CurrentQuestion.Answer == vv
-				case []interface{}:
-					correctAnswers := strings.Split(game.CurrentQuestion.Answer, ",")
-					sort.Strings(correctAnswers)
-					if len(correctAnswers) != len(vv) {
-						res = false
-						break
+					fmt.Println(err)
+				} else {
+					// TODO: This may need to be revisited, i.e., is a type assertion a
+					// good solution here?
+					// Note that if the CurrentQuestion.Answer is a slice, then we'll want
+					// to use it as a bitmap.
+					res := true
+					switch vv := msg.Data.(type) {
+					case float64:
+						answer := game.CurrentQuestion.Answer.(uint16)
+						// Compensate for the bit that we set for the multi-answer
+						// multiple choice question.
+						if answer>>15 == 1 {
+							res = float64(answer) == (1<<15)+vv
+						} else {
+							res = float64(answer) == vv
+						}
+					case string:
+						res = game.CurrentQuestion.Answer == vv
 					}
-					for i, char := range vv {
-						if char != correctAnswers[i] {
-							res = false
-							break
+
+					// Increment the field that we'll use to determine when every player
+					// has responded.  At that point, we'll update the scoreboard.
+					game.CurrentQuestion.Responses += 1
+
+					// Message the player individually if the answer was correct (or not).
+					b, err := json.Marshal(ServerMessage{
+						Type: "player_message",
+						Data: res,
+					})
+					if err != nil {
+						fmt.Println("marshall error:", err)
+					} else {
+						// TODO: check if this actually sent?
+						socket.Write(b)
+						if !res {
+							m, err := json.Marshal(ServerMessage{
+								Type: "notify_player",
+								Data: fmt.Sprintf("The correct answer is %f", game.CurrentQuestion.Answer),
+							})
+							if err != nil {
+								fmt.Println("marshall error:", err)
+							}
+							if _, err := player.Socket.Write(m); err != nil {
+								fmt.Println("socket write error:", err)
+							}
+						}
+					}
+
+					// Log the player's result.
+					if res {
+						_, err := game.UpdatePlayerScore(socket, game.CurrentQuestion.Weight)
+						if err != nil {
+							log.Fatalln(err)
+						}
+						fmt.Printf("%s correctly guessed %s, %d current points\n",
+							player.Name,
+							msg.Data,
+							player.Score)
+					} else {
+						fmt.Printf("%s incorrectly guessed %s, %d current points\n",
+							player.Name,
+							msg.Data,
+							player.Score)
+					}
+
+					// If everyone has answered, update everyone by updating the scoreboard.
+					if len(game.Players) == game.CurrentQuestion.Responses {
+						err = s.Publish(game, ServerMessage{
+							Type: "update_scoreboard",
+							Data: game.Players,
+						})
+						if err != nil {
+							log.Fatalln(err)
 						}
 					}
 				}
-				// Second, if the answer is correct, update everyone.
-				b, err := json.Marshal(ServerMessage{
-					Type: "player_message",
-					Data: res,
-				})
-				if err != nil {
-					fmt.Println("marshall error:", err)
-				} else {
-					// TODO: check if this actually sent?
-					socket.Write(b)
-				}
-				if res {
-					_, err := game.UpdatePlayerScore(socket, game.CurrentQuestion.Weight)
-					if err != nil {
-						log.Fatalln(err)
-					}
-					fmt.Printf("%s correctly guessed %s, %d current points\n",
-						player.Name,
-						msg.Data,
-						player.Score)
-					err = s.Publish(game, ServerMessage{
-						Type: "update_scoreboard",
-						Data: game.Players,
-					})
-					if err != nil {
-						log.Fatalln(err)
-					}
-				} else {
-					fmt.Printf("%s incorrectly guessed %s, %d current points\n",
-						player.Name,
-						msg.Data,
-						player.Score)
-				}
-			case "question":
-				//todo
 			}
 		}
 	}
@@ -291,6 +309,7 @@ func (s *SocketServer) NotifyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// TODO: Use a CSV package for this?
 func (s *SocketServer) QueryHandler(w http.ResponseWriter, r *http.Request) {
 	game, err := s.GetGame(r.Header.Get("X-TRIVIA-APIKEY"))
 	if err != nil {
@@ -312,13 +331,32 @@ func (s *SocketServer) QueryHandler(w http.ResponseWriter, r *http.Request) {
 	if len(l[0]) > 3 {
 		choices = l[3:]
 	}
+
 	game.CurrentQuestion = CurrentQuestion{
 		Question: l[0],
-		// TODO: probably don't want to send the answer to the client.
-		Answer:  l[1],
-		Choices: choices,
-		Weight:  weight,
+		Choices:  choices,
+		Weight:   weight,
 	}
+
+	if len(choices) > 0 {
+		answers := strings.Split(l[1], ",")
+		bitmap := makeBitmap(answers)
+		// If there is more than one answer than it is a multiple
+		// choice question with more than one right answer.
+		// As such, we need to encode this into the bitmap, so the
+		// UI can tell the difference between a multiple choice
+		// question with only one right answer and one with more
+		// than one.
+		// A bit value of `10000000 00000000` will instruct the UI
+		// to make checkbox options, while a bit value of
+		// `00000000 00000000` will instruct it to make radio options.
+		// weeeeeeeeeeeeeeeeeeeee
+		if len(answers) > 1 {
+			bitmap += 1 << 15
+		}
+		game.CurrentQuestion.Answer = bitmap
+	}
+
 	b, err = json.Marshal(game.CurrentQuestion)
 	if err != nil {
 		fmt.Println(err)
