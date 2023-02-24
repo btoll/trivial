@@ -156,12 +156,12 @@ func (s *SocketServer) DefaultHandler(socket *websocket.Conn) {
 				if err != nil {
 					fmt.Println(err)
 				} else {
-					// TODO: This may need to be revisited, i.e., is a type assertion a
-					// good solution here?
-					// Note that if the CurrentQuestion.Answer is a slice, then we'll want
-					// to use it as a bitmap.
+					var correct string
+					var playerGuess string
 					res := true
+
 					switch vv := msg.Data.(type) {
+					// Note that if the response type is a float64, then it's a bitmap.
 					case float64:
 						answer := game.CurrentQuestion.Answer.(uint16)
 						// Compensate for the bit that we set for the multi-answer
@@ -188,11 +188,21 @@ func (s *SocketServer) DefaultHandler(socket *websocket.Conn) {
 						fmt.Println("marshall error:", err)
 					} else {
 						// TODO: check if this actually sent?
-						socket.Write(b)
+						_, err = socket.Write(b)
+						if err != nil {
+							fmt.Println(err)
+						}
+						t := getItemFromLog(game.CurrentQuestion.Choices, game.CurrentQuestion.Answer.(uint16))
+						correct = strings.Join(t, ",")
+						//						f := msg.Data.(float64)
+						fl := msg.Data.(float64)
+						f := getItemFromLog(game.CurrentQuestion.Choices, uint16(fl))
+						playerGuess = strings.Join(f, ",")
+
 						if !res {
 							m, err := json.Marshal(ServerMessage{
 								Type: "notify_player",
-								Data: fmt.Sprintf("The correct answer is %f", game.CurrentQuestion.Answer),
+								Data: fmt.Sprintf("The correct answer is %s", correct),
 							})
 							if err != nil {
 								fmt.Println("marshall error:", err)
@@ -211,12 +221,12 @@ func (s *SocketServer) DefaultHandler(socket *websocket.Conn) {
 						}
 						fmt.Printf("%s correctly guessed %s, %d current points\n",
 							player.Name,
-							msg.Data,
+							correct,
 							player.Score)
 					} else {
 						fmt.Printf("%s incorrectly guessed %s, %d current points\n",
 							player.Name,
-							msg.Data,
+							playerGuess,
 							player.Score)
 					}
 
@@ -402,7 +412,6 @@ func (s *SocketServer) ScoreboardHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	// Dump the current question to `stdout` (and later to a log).
-	//	b, err := json.MarshalIndent(game.getScoreboard(), "", "    ")
 	b, err := json.Marshal(game.GetScoreboard())
 	if err != nil {
 		fmt.Println(err)
