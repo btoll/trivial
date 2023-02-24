@@ -7,40 +7,41 @@ import (
 )
 
 //https://play.golang.com/p/s4OQPYxfGj3
+//https://play.golang.com/p/F8bDipTDhjK
 
-func getAnswer(total uint16, nums []uint16) []uint16 {
-	k := len(nums) - 1
-	res := []uint16{nums[k]}
-	sum := nums[k]
-	k -= 1
-	for k >= 0 && sum != total {
-		if (sum + nums[k]) <= total {
-			sum += nums[k]
-			res = append(res, nums[k])
+// Get the parts of the sum.
+func getBase2Components(total uint16) []uint16 {
+	if isBase2(total) {
+		return []uint16{total}
+	}
+	var n uint16 = 1
+	var k uint16 = 0
+	// Get the largest power of 2 that "fits" in the integer.
+	for n < total {
+		k = n
+		n <<= 1
+	}
+	sum := k
+	// The largest power of 2 will be the first thing to append.
+	res := []uint16{k}
+	// Get the logarithm of the largest power of 2.  This is what
+	// will be used to bitshift left and get the remaining power
+	// of 2s in descending order.
+	j := uint16(math.Log2(float64(k - 1)))
+	//	j -= 1
+	for j >= 0 && sum != total {
+		if sum+1<<j <= total {
+			sum += (1 << j)
+			res = append(res, 1<<j)
 		}
-		k -= 1
+		j -= 1
 	}
 	return res
 }
 
-func getBase2Components(bitmap uint16) []uint16 {
-	if isBase2(bitmap) {
-		return []uint16{bitmap}
-	}
-	var n uint16 = 1
-	s := []uint16{}
-	for n < bitmap {
-		s = append(s, n)
-		n <<= 1
-	}
-	return s
-}
-
-// This is awful, I'm sorry.
+// This is (less) awful (than before), I'm sorry.
 func getItemFromLog(choices []string, num uint16) []string {
-	n := removeBit(num)
-	possibleAnswers := getBase2Components(n)
-	correctIndices := getAnswer(n, possibleAnswers)
+	correctIndices := getBase2Components(removeLastBit(num))
 	t := []string{}
 	for _, v := range correctIndices {
 		log := math.Log2(float64(v))
@@ -68,7 +69,7 @@ func makeBitmap(nums []string) uint16 {
 	return total
 }
 
-func removeBit(n uint16) uint16 {
+func removeLastBit(n uint16) uint16 {
 	if (n & (1 << 15)) == 1<<15 {
 		return n - 1<<15
 	}
