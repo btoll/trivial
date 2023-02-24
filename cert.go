@@ -165,7 +165,7 @@ func generateCert(cert TLSCert) {
 	if err := certOut.Close(); err != nil {
 		log.Fatalf("Error closing cert.pem: %v", err)
 	}
-	log.Print("wrote cert.pem\n")
+	//	log.Print("wrote cert.pem\n")
 
 	keyOut, err := os.OpenFile("key.pem", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
@@ -181,5 +181,5 @@ func generateCert(cert TLSCert) {
 	if err := keyOut.Close(); err != nil {
 		log.Fatalf("Error closing key.pem: %v", err)
 	}
-	log.Print("wrote key.pem\n")
+	// log.Print("wrote key.pem\n")
 }

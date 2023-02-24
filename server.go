@@ -4,6 +4,7 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"text/template"
 
 	"golang.org/x/net/websocket"
@@ -123,5 +124,13 @@ func (s *SocketServer) Publish(game *Game, msg ServerMessage) error {
 // Registers a new game. A socket server can host multiple games.
 func (s *SocketServer) RegisterGame(game *Game) {
 	s.Games[game.Key.Key] = game
+	http.Handle("/ws", websocket.Handler(s.DefaultHandler))
+	http.HandleFunc("/", s.BaseHandler)
+	http.HandleFunc("/kill", s.KillHandler)
+	http.HandleFunc("/message", s.MessageHandler)
+	http.HandleFunc("/notify", s.NotifyHandler)
+	http.HandleFunc("/query", s.QueryHandler)
+	http.HandleFunc("/reset", s.ResetHandler)
+	http.HandleFunc("/scoreboard", s.ScoreboardHandler)
 	fmt.Printf("registered game `%s` with key `%s`\n", game.Name, game.Key.Key)
 }
