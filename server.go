@@ -20,6 +20,7 @@ type SocketServer struct {
 	Location URI
 	Games    map[string]*Game
 	Tpl      *template.Template
+	Mux      *http.ServeMux
 }
 
 func NewSocketServer(uri URI, cert TLSCert) *SocketServer {
@@ -33,6 +34,7 @@ func NewSocketServer(uri URI, cert TLSCert) *SocketServer {
 		// The underscore (_) is lexically before any lowercase alpha character,
 		// **do not** remove it!
 		Tpl: template.Must(template.ParseFS(templateFiles, "templates/*.gohtml")),
+		Mux: http.NewServeMux(),
 	}
 }
 
@@ -129,19 +131,19 @@ func (s *SocketServer) RegisterAndStartGame(game *Game) {
 // Registers a new game. A socket server can host multiple games.
 func (s *SocketServer) RegisterGame(game *Game) {
 	s.Games[game.Key.Key] = game
-	http.Handle("/ws", websocket.Handler(s.DefaultHandler))
-	http.HandleFunc("/", s.BaseHandler)
-	http.HandleFunc("/kill", s.KillHandler)
-	http.HandleFunc("/message", s.MessageHandler)
-	http.HandleFunc("/notify", s.NotifyHandler)
-	http.HandleFunc("/query", s.QueryHandler)
-	http.HandleFunc("/reset", s.ResetHandler)
-	http.HandleFunc("/scoreboard", s.ScoreboardHandler)
+	s.Mux.Handle("/ws", websocket.Handler(s.DefaultHandler))
+	s.Mux.HandleFunc("/", s.BaseHandler)
+	s.Mux.HandleFunc("/kill", s.KillHandler)
+	s.Mux.HandleFunc("/message", s.MessageHandler)
+	s.Mux.HandleFunc("/notify", s.NotifyHandler)
+	s.Mux.HandleFunc("/query", s.QueryHandler)
+	s.Mux.HandleFunc("/reset", s.ResetHandler)
+	s.Mux.HandleFunc("/scoreboard", s.ScoreboardHandler)
 	fmt.Printf("registered game `%s` with key `%s`\n", game.Name, game.Key.Key)
 }
 
 func (s *SocketServer) StartGame(game *Game) {
 	//	http.ListenAndServe(":3000", nil)
 	fmt.Printf("starting game `%s` on port 3000\n", game.Name)
-	http.ListenAndServeTLS(":3000", "cert.pem", "key.pem", nil)
+	http.ListenAndServeTLS(":3000", "cert.pem", "key.pem", s.Mux)
 }
