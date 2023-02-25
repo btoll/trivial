@@ -121,6 +121,11 @@ func (s *SocketServer) Publish(game *Game, msg ServerMessage) error {
 	return nil
 }
 
+func (s *SocketServer) RegisterAndStartGame(game *Game) {
+	s.RegisterGame(game)
+	s.StartGame(game)
+}
+
 // Registers a new game. A socket server can host multiple games.
 func (s *SocketServer) RegisterGame(game *Game) {
 	s.Games[game.Key.Key] = game
@@ -133,4 +138,10 @@ func (s *SocketServer) RegisterGame(game *Game) {
 	http.HandleFunc("/reset", s.ResetHandler)
 	http.HandleFunc("/scoreboard", s.ScoreboardHandler)
 	fmt.Printf("registered game `%s` with key `%s`\n", game.Name, game.Key.Key)
+}
+
+func (s *SocketServer) StartGame(game *Game) {
+	//	http.ListenAndServe(":3000", nil)
+	fmt.Printf("starting game `%s` on port 3000\n", game.Name)
+	http.ListenAndServeTLS(":3000", "cert.pem", "key.pem", nil)
 }
