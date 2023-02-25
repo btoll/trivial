@@ -85,7 +85,7 @@ const fadeOut = node => {
             node.style.opacity = i;
             i -= 0.1;
         }, 70);
-    }, 5000);
+    }, 5500);
 };
 
 const sendMsg = (type, data) => {
@@ -153,10 +153,15 @@ document.addEventListener("DOMContentLoaded", event => {
 
     document.getElementById("gameboard").addEventListener("submit", event => {
         const selected = answers.querySelectorAll("input:checked");
-        let total = 0;
-        selected.forEach(node => total += parseInt(node.value, 10));
-        sendMsg("guess", total);
-        disableFormInputs();
+        if (!selected.length) {
+            message.innerHTML = "Please make a selection";
+            fadeOut(message);
+        } else {
+            let total = 0;
+            selected.forEach(node => total += parseInt(node.value, 10));
+            sendMsg("guess", total);
+            disableFormInputs();
+        }
         event.preventDefault();
     });
 
