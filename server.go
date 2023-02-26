@@ -104,7 +104,20 @@ func (s *SocketServer) GetPlayerBySocket(socket *websocket.Conn) (*Player, *Game
 			return player, game, nil
 		}
 	}
-	return nil, nil, fmt.Errorf("cannot get player from socket")
+	return nil, nil, errors.New("cannot get player from socket")
+}
+
+// Notify a single player of an event.
+func (s *SocketServer) Message(socket *websocket.Conn, msg ServerMessage) error {
+	b, err := json.Marshal(msg)
+	if err != nil {
+		return err
+	}
+	_, err = socket.Write(b)
+	if err != nil {
+		return fmt.Errorf("websocket write error: %v", err)
+	}
+	return nil
 }
 
 // Notifies every player of an event.
@@ -144,7 +157,7 @@ func (s *SocketServer) RegisterGame(game *Game) {
 }
 
 func (s *SocketServer) StartGame(game *Game) {
-	//	http.ListenAndServe(":3000", nil)
+	//	http.ListenAndServe(":3000", s.Mux)
 	fmt.Printf("starting game `%s` on port 3000\n", game.Name)
 	http.ListenAndServeTLS(":3000", "cert.pem", "key.pem", s.Mux)
 }

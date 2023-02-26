@@ -77,14 +77,12 @@ func (s *SocketServer) DefaultHandler(socket *websocket.Conn) {
 		// new players from joining (see the "login" case below).
 		game, err := s.GetGame(msg.Token)
 		if err != nil {
-			b, err := json.Marshal(ServerMessage{
+			err := s.Message(socket, ServerMessage{
 				Type: "error",
 				Data: fmt.Sprintf("There has been a problem accessing game `%s`", msg.Token),
 			})
 			if err != nil {
-				fmt.Println("marshall error:", err)
-			} else {
-				socket.Write(b)
+				log.Fatalln("marshall error:", err)
 			}
 		} else {
 			switch msg.Type {
@@ -103,29 +101,25 @@ func (s *SocketServer) DefaultHandler(socket *websocket.Conn) {
 							log.Fatalln(err)
 						}
 					} else {
-						b, err := json.Marshal(ServerMessage{
+						err = s.Message(socket, ServerMessage{
 							Type: "error",
 							Data: fmt.Sprintf("Username `%s` exists, choose another", username),
 						})
 						if err != nil {
-							fmt.Println("marshall error:", err)
-						} else {
-							// TODO: check if this actually sent?
-							socket.Write(b)
+							log.Fatalln(err)
 						}
 					}
 				} else {
 					fmt.Println("received data from client", string(data))
 					err = game.CheckTokenExpiration()
 					if err != nil {
-						b, err := json.Marshal(ServerMessage{
+						err = s.Message(socket, ServerMessage{
 							Type: "error",
 							Data: fmt.Sprintf("%s", "Game has expired"),
 						})
 						if err != nil {
 							log.Fatalln(err)
 						}
-						socket.Write(b)
 					} else {
 						parsedUrl, err := url.Parse(fmt.Sprintf("%s", location))
 						if err != nil {
@@ -180,36 +174,28 @@ func (s *SocketServer) DefaultHandler(socket *websocket.Conn) {
 					game.CurrentQuestion.Responses += 1
 
 					// Message the player individually if the answer was correct (or not).
-					b, err := json.Marshal(ServerMessage{
+					err := s.Message(socket, ServerMessage{
 						Type: "player_message",
 						Data: res,
 					})
 					if err != nil {
-						fmt.Println("marshall error:", err)
-					} else {
-						// TODO: check if this actually sent?
-						_, err = socket.Write(b)
-						if err != nil {
-							fmt.Println(err)
-						}
-						t := getItemFromLog(game.CurrentQuestion.Choices, game.CurrentQuestion.Answer.(uint16))
-						correct = strings.Join(t, ",")
-						//						f := msg.Data.(float64)
-						fl := msg.Data.(float64)
-						f := getItemFromLog(game.CurrentQuestion.Choices, uint16(fl))
-						playerGuess = strings.Join(f, ",")
+						log.Fatalln(err)
+					}
 
-						if !res {
-							m, err := json.Marshal(ServerMessage{
-								Type: "notify_player",
-								Data: fmt.Sprintf("The correct answer is %s", correct),
-							})
-							if err != nil {
-								fmt.Println("marshall error:", err)
-							}
-							if _, err := player.Socket.Write(m); err != nil {
-								fmt.Println("socket write error:", err)
-							}
+					t := getItemFromLog(game.CurrentQuestion.Choices, game.CurrentQuestion.Answer.(uint16))
+					correct = strings.Join(t, ",")
+					//						f := msg.Data.(float64)
+					fl := msg.Data.(float64)
+					f := getItemFromLog(game.CurrentQuestion.Choices, uint16(fl))
+					playerGuess = strings.Join(f, ",")
+
+					if !res {
+						err := s.Message(socket, ServerMessage{
+							Type: "notify_player",
+							Data: fmt.Sprintf("The correct answer is %s", correct),
+						})
+						if err != nil {
+							log.Fatalln(err)
 						}
 					}
 
@@ -239,6 +225,11 @@ func (s *SocketServer) DefaultHandler(socket *websocket.Conn) {
 						if err != nil {
 							log.Fatalln(err)
 						}
+						b, err := json.Marshal(game.GetScoreboard())
+						if err != nil {
+							fmt.Println(err)
+						}
+						fmt.Println(string(b))
 					}
 				}
 			}
@@ -261,11 +252,11 @@ func (s *SocketServer) KillHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
-	m, err := json.Marshal(ServerMessage{
+	err = s.Message(player.Socket, ServerMessage{
 		Type: "logout",
 		Data: "",
 	})
-	if _, err := player.Socket.Write(m); err != nil {
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 	game.Bench(player)
@@ -291,11 +282,11 @@ func (s *SocketServer) MessageHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
-	m, err := json.Marshal(ServerMessage{
+	err = s.Message(player.Socket, ServerMessage{
 		Type: "notify_player",
 		Data: string(b),
 	})
-	if _, err := player.Socket.Write(m); err != nil {
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -411,7 +402,6 @@ func (s *SocketServer) ScoreboardHandler(w http.ResponseWriter, r *http.Request)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	// Dump the current question to `stdout` (and later to a log).
 	b, err := json.Marshal(game.GetScoreboard())
 	if err != nil {
 		fmt.Println(err)
