@@ -1,7 +1,7 @@
 package trivial
 
 import (
-	"fmt"
+	"errors"
 	"math"
 	"math/rand"
 	"time"
@@ -129,7 +129,7 @@ func NewGame(name string, keyLength int, tokenExpiration float64) *Game {
 func (g *Game) Bench(p *Player) error {
 	n, player := has(g.Players, p)
 	if n == -1 {
-		return fmt.Errorf("Player not found.")
+		return errors.New("Player not found.")
 	}
 	g.Players = remove(g.Players, n)
 	g.Benched = append(g.Benched, player)
@@ -153,10 +153,10 @@ func (g *Game) Bench(p *Player) error {
 // See [Game.CheckTokenExpiration] for more information.
 func (g *Game) CheckTokenEquality(token string) error {
 	if token == "" {
-		return fmt.Errorf("No API Key")
+		return errors.New("No API Key")
 	}
 	if token != g.Key.Key {
-		return fmt.Errorf("Bad API key")
+		return errors.New("Bad API key")
 	}
 	return nil
 }
@@ -168,12 +168,12 @@ func (g *Game) CheckTokenEquality(token string) error {
 // See [Game.CheckTokenEquality] for more information.
 func (g *Game) CheckTokenExpiration() error {
 	if g.Key.Expired {
-		return fmt.Errorf("API key has already expired")
+		return errors.New("API key has already expired")
 	}
 	since := g.Key.TimeCreated.Sub(time.Now().UTC())
 	if math.Abs(since.Seconds()) > g.Key.Expiration {
 		g.Key.Expired = true
-		return fmt.Errorf("API key has expired")
+		return errors.New("API key has expired")
 	}
 	return nil
 }
@@ -199,7 +199,7 @@ func (g *Game) GetPlayer(v any) (*Player, error) {
 			}
 		}
 	}
-	return nil, fmt.Errorf("Player not found.")
+	return nil, errors.New("Player not found.")
 }
 
 func (g *Game) GetScoreboard() Scoreboard {
@@ -232,7 +232,7 @@ func (g *Game) HasPlayer(name string) (*Player, bool) {
 func (g *Game) Unbench(p *Player) error {
 	n, player := has(g.Benched, p)
 	if n == -1 {
-		return fmt.Errorf("Player not found.")
+		return errors.New("Player not found.")
 	}
 	g.Benched = remove(g.Benched, n)
 	g.Players = append(g.Players, player)
@@ -252,5 +252,5 @@ func (g *Game) UpdatePlayerScore(socket *websocket.Conn, points int) (int, error
 			return total, nil
 		}
 	}
-	return 0, fmt.Errorf("Player not found.")
+	return 0, errors.New("Player not found.")
 }

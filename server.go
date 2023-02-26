@@ -3,6 +3,7 @@ package trivial
 import (
 	"embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"text/template"
@@ -78,7 +79,7 @@ type ClientMessage struct {
 // Note this only checks for token equality **not** expiration.
 func (s *SocketServer) GetGame(key string) (*Game, error) {
 	if key == "" {
-		return nil, fmt.Errorf("API key is an empty string")
+		return nil, errors.New("API key is an empty string")
 	}
 	if game, ok := s.Games[key]; ok {
 		err := game.CheckTokenEquality(key)
