@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"text/template"
 
+	"github.com/btoll/trivial/middleware"
 	"golang.org/x/net/websocket"
 )
 
@@ -82,10 +84,6 @@ func (s *SocketServer) GetGame(key string) (*Game, error) {
 		return nil, errors.New("API key is an empty string")
 	}
 	if game, ok := s.Games[key]; ok {
-		err := game.CheckTokenEquality(key)
-		if err != nil {
-			return game, err
-		}
 		return game, nil
 	}
 	return nil, fmt.Errorf("game `%s` not found", key)
@@ -126,7 +124,6 @@ func (s *SocketServer) Publish(game *Game, msg ServerMessage) error {
 	if err != nil {
 		return err
 	}
-
 	for _, player := range game.Players {
 		go func(player Player) {
 			if _, err := player.Socket.Write(b); err != nil {
@@ -145,6 +142,12 @@ func (s *SocketServer) RegisterAndStartGame(game *Game) {
 // Registers a new game. A socket server can host multiple games.
 func (s *SocketServer) RegisterGame(game *Game) {
 	s.Games[game.Key.Key] = game
+	fmt.Printf("registered game `%s` with key `%s`\n", game.Name, game.Key.Key)
+}
+
+// Registers all the handlers with the new mux, adds the middleware
+// and starts starts the game server.
+func (s *SocketServer) StartGame(game *Game) {
 	s.Mux.Handle("/ws", websocket.Handler(s.DefaultHandler))
 	s.Mux.HandleFunc("/", s.BaseHandler)
 	s.Mux.HandleFunc("/kill", s.KillHandler)
@@ -153,11 +156,7 @@ func (s *SocketServer) RegisterGame(game *Game) {
 	s.Mux.HandleFunc("/query", s.QueryHandler)
 	s.Mux.HandleFunc("/reset", s.ResetHandler)
 	s.Mux.HandleFunc("/scoreboard", s.ScoreboardHandler)
-	fmt.Printf("registered game `%s` with key `%s`\n", game.Name, game.Key.Key)
-}
-
-func (s *SocketServer) StartGame(game *Game) {
-	//	http.ListenAndServe(":3000", s.Mux)
 	fmt.Printf("starting game `%s` on port 3000\n", game.Name)
-	http.ListenAndServeTLS(":3000", "cert.pem", "key.pem", s.Mux)
+	//	log.Fatal(http.ListenAndServe(":3000", NewAuthenticator(&game.Key, s.Mux)))
+	log.Fatal(http.ListenAndServeTLS(":3000", "cert.pem", "key.pem", middleware.NewAuthenticator(&game.Key, s.Mux)))
 }

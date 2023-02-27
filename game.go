@@ -3,18 +3,11 @@ package trivial
 import (
 	"errors"
 	"math"
-	"math/rand"
 	"time"
 
+	"github.com/btoll/trivial/middleware"
 	"golang.org/x/net/websocket"
 )
-
-type APIKey struct {
-	Key         string
-	TimeCreated time.Time
-	Expiration  float64
-	Expired     bool
-}
 
 type GamePlayers []*Player
 
@@ -63,27 +56,8 @@ type Game struct {
 	Name    string
 	Players GamePlayers
 	Benched GamePlayers
-	Key     APIKey
+	Key     middleware.APIKey
 	CurrentQuestion
-}
-
-func apiKey(n int) string {
-	alphanumeric := []byte("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
-	key := make([]byte, n)
-	for i := range key {
-		key[i] = alphanumeric[rand.Intn(len(alphanumeric))]
-	}
-	return string(key)
-}
-
-func generateKey(length int, seconds float64) APIKey {
-	rand.Seed(time.Now().UTC().UnixNano())
-	return APIKey{
-		Key:         apiKey(length),
-		TimeCreated: time.Now().UTC(),
-		Expiration:  seconds,
-		Expired:     false,
-	}
 }
 
 func has(pool GamePlayers, v any) (int, *Player) {
@@ -113,7 +87,7 @@ func NewGame(name string, keyLength int, tokenExpiration float64) *Game {
 	return &Game{
 		Name:    name,
 		Players: make(GamePlayers, 0),
-		Key:     generateKey(keyLength, tokenExpiration),
+		Key:     middleware.GenerateKey(name, keyLength, tokenExpiration),
 	}
 }
 
@@ -136,27 +110,6 @@ func (g *Game) Bench(p *Player) error {
 	err := player.Socket.Close()
 	if err != nil {
 		return err
-	}
-	return nil
-}
-
-// Called whenever a game is looked up [SocketServer.GetGame].
-// It only checks for equality and not expiration because
-// an already logged in player may still be sending requests
-// to the socket server after the game has expired, which is
-// legal.
-// There needs to be a way to differentiate between a
-// logged in user and one that is trying to log in after
-// the game has expired, so breaking these token checks
-// into there respective parts makes sense and accomplishes
-// this goal.
-// See [Game.CheckTokenExpiration] for more information.
-func (g *Game) CheckTokenEquality(token string) error {
-	if token == "" {
-		return errors.New("No API Key")
-	}
-	if token != g.Key.Key {
-		return errors.New("Bad API key")
 	}
 	return nil
 }

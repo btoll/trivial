@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/btoll/trivial/middleware"
 	"golang.org/x/net/websocket"
 )
 
@@ -238,16 +239,17 @@ func (s *SocketServer) DefaultHandler(socket *websocket.Conn) {
 }
 
 func (s *SocketServer) KillHandler(w http.ResponseWriter, r *http.Request) {
-	game, err := s.GetGame(r.Header.Get("X-TRIVIA-APIKEY"))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
 	parsedUrl, err := url.Parse(fmt.Sprintf("%s", r.URL))
 	if err != nil {
 		fmt.Println("url.Parse error:", err)
 	}
 	p := strings.Split(parsedUrl.RawQuery, "=")
+	apiKey := r.Context().Value("apiKey").(*middleware.APIKey)
+	game, err := s.GetGame(apiKey.Key)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	player, err := game.GetPlayer(p[1])
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -264,16 +266,17 @@ func (s *SocketServer) KillHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *SocketServer) MessageHandler(w http.ResponseWriter, r *http.Request) {
-	game, err := s.GetGame(r.Header.Get("X-TRIVIA-APIKEY"))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
 	parsedUrl, err := url.Parse(fmt.Sprintf("%s", r.URL))
 	if err != nil {
 		fmt.Println("url.Parse error:", err)
 	}
 	p := strings.Split(parsedUrl.RawQuery, "=")
+	apiKey := r.Context().Value("apiKey").(*middleware.APIKey)
+	game, err := s.GetGame(apiKey.Key)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	player, err := game.GetPlayer(p[1])
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -292,14 +295,15 @@ func (s *SocketServer) MessageHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *SocketServer) NotifyHandler(w http.ResponseWriter, r *http.Request) {
-	game, err := s.GetGame(r.Header.Get("X-TRIVIA-APIKEY"))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+	apiKey := r.Context().Value("apiKey").(*middleware.APIKey)
+	game, err := s.GetGame(apiKey.Key)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	err = s.Publish(game, ServerMessage{
 		Type: "notify_all",
@@ -312,11 +316,6 @@ func (s *SocketServer) NotifyHandler(w http.ResponseWriter, r *http.Request) {
 
 // TODO: Use a CSV package for this?
 func (s *SocketServer) QueryHandler(w http.ResponseWriter, r *http.Request) {
-	game, err := s.GetGame(r.Header.Get("X-TRIVIA-APIKEY"))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -333,6 +332,12 @@ func (s *SocketServer) QueryHandler(w http.ResponseWriter, r *http.Request) {
 		choices = l[3:]
 	}
 
+	apiKey := r.Context().Value("apiKey").(*middleware.APIKey)
+	game, err := s.GetGame(apiKey.Key)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	game.CurrentQuestion = CurrentQuestion{
 		Question: l[0],
 		Choices:  choices,
@@ -379,7 +384,8 @@ func (s *SocketServer) QueryHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *SocketServer) ResetHandler(w http.ResponseWriter, r *http.Request) {
-	game, err := s.GetGame(r.Header.Get("X-TRIVIA-APIKEY"))
+	apiKey := r.Context().Value("apiKey").(*middleware.APIKey)
+	game, err := s.GetGame(apiKey.Key)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -397,7 +403,8 @@ func (s *SocketServer) ResetHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *SocketServer) ScoreboardHandler(w http.ResponseWriter, r *http.Request) {
-	game, err := s.GetGame(r.Header.Get("X-TRIVIA-APIKEY"))
+	apiKey := r.Context().Value("apiKey").(*middleware.APIKey)
+	game, err := s.GetGame(apiKey.Key)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
