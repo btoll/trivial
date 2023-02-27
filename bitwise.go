@@ -28,10 +28,9 @@ func getBase2Components(total uint16) []uint16 {
 	// will be used to bitshift left and get the remaining power
 	// of 2s in descending order.
 	j := uint16(math.Log2(float64(k - 1)))
-	//	j -= 1
 	for j >= 0 && sum != total {
 		if sum+1<<j <= total {
-			sum += (1 << j)
+			sum += 1 << j
 			res = append(res, 1<<j)
 		}
 		j -= 1

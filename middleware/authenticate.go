@@ -8,19 +8,19 @@ import (
 	"time"
 )
 
-func apiKey(n int) string {
+func apiKey() string {
 	alphanumeric := []byte("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
-	key := make([]byte, n)
+	key := make([]byte, 20)
 	for i := range key {
 		key[i] = alphanumeric[rand.Intn(len(alphanumeric))]
 	}
 	return string(key)
 }
 
-func GenerateKey(name string, length int, seconds float64) APIKey {
+func GenerateKey(name string, seconds float64) APIKey {
 	rand.Seed(time.Now().UTC().UnixNano())
 	return APIKey{
-		Key:         apiKey(length),
+		Key:         apiKey(),
 		TimeCreated: time.Now().UTC(),
 		Expiration:  seconds,
 		Expired:     false,

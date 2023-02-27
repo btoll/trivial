@@ -83,11 +83,11 @@ func remove(pool GamePlayers, index int) GamePlayers {
 }
 
 // Constructor.
-func NewGame(name string, keyLength int, tokenExpiration float64) *Game {
+func NewGame(name string, tokenExpiration float64) *Game {
 	return &Game{
 		Name:    name,
 		Players: make(GamePlayers, 0),
-		Key:     middleware.GenerateKey(name, keyLength, tokenExpiration),
+		Key:     middleware.GenerateKey(name, tokenExpiration),
 	}
 }
 
