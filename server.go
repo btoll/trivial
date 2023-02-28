@@ -20,18 +20,18 @@ var templateFiles embed.FS
 // multiple (concurrent) games.
 type SocketServer struct {
 	Cert     TLSCert
-	Location URI
+	Location URL
 	Games    map[string]*Game
 	Tpl      *template.Template
 	Mux      *http.ServeMux
 }
 
-func NewSocketServer(uri URI, cert TLSCert) *SocketServer {
-	fmt.Printf("created new websocket server `%s`\n", uri)
+func NewSocketServer(url URL, cert TLSCert) *SocketServer {
+	fmt.Printf("created new websocket server `%s`\n", url)
 	generateCert(cert)
 	return &SocketServer{
 		Cert:     cert,
-		Location: uri,
+		Location: url,
 		Games:    make(map[string]*Game),
 		// `_base.html` file **must** be the first file!!
 		// The underscore (_) is lexically before any lowercase alpha character,
@@ -47,12 +47,12 @@ type Socket struct {
 	Port     int
 }
 
-type URI struct {
+type URL struct {
 	Sock Socket
 	Path string
 }
 
-func (u URI) String() string {
+func (u URL) String() string {
 	return fmt.Sprintf("%s://%s:%d/%s",
 		u.Sock.Protocol,
 		u.Sock.Domain,
@@ -157,6 +157,6 @@ func (s *SocketServer) StartGame(game *Game) {
 	s.Mux.HandleFunc("/reset", s.ResetHandler)
 	s.Mux.HandleFunc("/scoreboard", s.ScoreboardHandler)
 	fmt.Printf("starting game `%s` on port 3000\n", game.Name)
-	//	log.Fatal(http.ListenAndServe(":3000", NewAuthenticator(&game.Key, s.Mux)))
-	log.Fatal(http.ListenAndServeTLS(":3000", "cert.pem", "key.pem", middleware.NewAuthenticator(&game.Key, s.Mux)))
+	//	log.Fatal(http.ListenAndServe(":3000", middleware.NewLogger(NewAuthenticator(&game.Key, s.Mux))))
+	log.Fatal(http.ListenAndServeTLS(":3000", "cert.pem", "key.pem", middleware.NewLogger(middleware.NewAuthenticator(&game.Key, s.Mux))))
 }
