@@ -322,7 +322,7 @@ func (s *SocketServer) QueryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	l := strings.Split(fmt.Sprintf("%s", b), "|")
-	weight, err := strconv.Atoi(l[2])
+	weight, err := strconv.Atoi(l[1])
 	if err != nil {
 		http.Error(w, fmt.Sprintf("%s", err), http.StatusInternalServerError)
 		return
@@ -345,7 +345,7 @@ func (s *SocketServer) QueryHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(choices) > 0 {
-		answers := strings.Split(l[1], ",")
+		answers := strings.Split(l[2], ",")
 		bitmap := makeBitmap(answers)
 		// If there is more than one answer than it is a multiple
 		// choice question with more than one right answer.
