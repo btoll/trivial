@@ -8,6 +8,7 @@
 - [`/query`](https://pkg.go.dev/github.com/btoll/trivial#SocketServer.QueryHandler)
 - [`/reset`](https://pkg.go.dev/github.com/btoll/trivial#SocketServer.ResetHandler)
 - [`/scoreboard`](https://pkg.go.dev/github.com/btoll/trivial#SocketServer.ScoreboardHandler)
+- [`/update_score`](https://pkg.go.dev/github.com/btoll/trivial#SocketServer.UpdateScoreHandler)
 
 ## Serve the docs
 

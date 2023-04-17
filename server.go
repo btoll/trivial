@@ -156,6 +156,7 @@ func (s *SocketServer) StartGame(game *Game) {
 	s.Mux.HandleFunc("/query", s.QueryHandler)
 	s.Mux.HandleFunc("/reset", s.ResetHandler)
 	s.Mux.HandleFunc("/scoreboard", s.ScoreboardHandler)
+	s.Mux.HandleFunc("/update_score", s.UpdateScoreHandler)
 	fmt.Printf("starting game `%s` on port 3000\n", game.Name)
 	//	log.Fatal(http.ListenAndServe(":3000", middleware.NewLogger(NewAuthenticator(&game.Key, s.Mux))))
 	log.Fatal(http.ListenAndServeTLS(":3000", "cert.pem", "key.pem", middleware.NewLogger(middleware.NewAuthenticator(&game.Key, s.Mux))))

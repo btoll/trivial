@@ -435,3 +435,50 @@ func (s *SocketServer) ScoreboardHandler(w http.ResponseWriter, r *http.Request)
 	}
 	fmt.Fprintln(w, string(b))
 }
+
+func (s *SocketServer) UpdateScoreHandler(w http.ResponseWriter, r *http.Request) {
+	b, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	parsedUrl, err := url.Parse(fmt.Sprintf("%s", r.URL))
+	if err != nil {
+		fmt.Println("url.Parse error:", err)
+	}
+	p := strings.Split(parsedUrl.RawQuery, "=")
+	apiKey := r.Context().Value("apiKey").(*middleware.APIKey)
+	game, err := s.GetGame(apiKey.Key)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	player, err := game.GetPlayer(p[1])
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	// TODO: Should be able to update a player score by either socket or name.
+	// Here we're first having to get the player before updating it, instead
+	// of doing it in one operation.
+	// Look at `game.GetPlayer`'s implementation.
+	numToUpdate, err := toInt(b)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	_, err = game.UpdatePlayerScore(player.Socket, numToUpdate)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	err = s.Publish(game, ServerMessage{
+		Type: "update_scoreboard",
+		Data: game.Players,
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	fmt.Printf("Added %d points to player `%s`.\n", numToUpdate, player.Name)
+}

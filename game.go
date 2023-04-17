@@ -4,6 +4,7 @@ import (
 	"errors"
 	"math"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/btoll/trivial/middleware"
@@ -93,6 +94,23 @@ func has(pool GamePlayers, v any) (int, *Player) {
 
 func remove(pool GamePlayers, index int) GamePlayers {
 	return append(pool[:index], pool[index+1:]...)
+}
+
+// https://play.golang.com/p/yG1ouhTriOP
+func toInt(b []byte) (int, error) {
+	//	result := 0
+	//	for i := 0; i < len(bytes); i++ {
+	//		result = result << 8
+	//		result += int(bytes[i])
+	//
+	//	}
+	//	return result
+	s := string(b)
+	i, err := strconv.Atoi(s)
+	if err != nil {
+		return -1, err
+	}
+	return i, nil
 }
 
 // Constructor.
