@@ -3,6 +3,7 @@ package trivial
 import (
 	"errors"
 	"math"
+	"sort"
 	"time"
 
 	"github.com/btoll/trivial/middleware"
@@ -34,6 +35,18 @@ type Player struct {
 }
 
 type Scoreboard []*PlayerScore
+
+func (s Scoreboard) Len() int {
+	return len(s)
+}
+
+func (s Scoreboard) Less(i, j int) bool {
+	return s[i].Score > s[j].Score
+}
+
+func (s Scoreboard) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
 
 // This is currently for an admin to get a quick view
 // of the game state.
@@ -159,6 +172,7 @@ func (g *Game) GetScoreboard() Scoreboard {
 			Score: player.Score,
 		}
 	}
+	sort.Sort(scoreboard)
 	return scoreboard
 }
 
