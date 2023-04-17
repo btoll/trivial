@@ -21,6 +21,7 @@ func (s *SocketServer) BaseHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err := s.Tpl.Execute(w, s.Location); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }
 
@@ -182,7 +183,6 @@ func (s *SocketServer) DefaultHandler(socket *websocket.Conn) {
 					if err != nil {
 						log.Fatalln(err)
 					}
-
 					t := getItemFromLog(game.CurrentQuestion.Choices, game.CurrentQuestion.Answer.(uint16))
 					correct = strings.Join(t, ",")
 					//						f := msg.Data.(float64)
@@ -253,6 +253,7 @@ func (s *SocketServer) KillHandler(w http.ResponseWriter, r *http.Request) {
 	player, err := game.GetPlayer(p[1])
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	err = s.Message(player.Socket, ServerMessage{
 		Type: "logout",
@@ -260,9 +261,22 @@ func (s *SocketServer) KillHandler(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
-	game.Bench(player)
+	err = game.Bench(player)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	fmt.Println("killing player", player.Name)
+	err = s.Publish(game, ServerMessage{
+		Type: "update_scoreboard",
+		Data: game.Players,
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 func (s *SocketServer) MessageHandler(w http.ResponseWriter, r *http.Request) {
@@ -280,10 +294,12 @@ func (s *SocketServer) MessageHandler(w http.ResponseWriter, r *http.Request) {
 	player, err := game.GetPlayer(p[1])
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	err = s.Message(player.Socket, ServerMessage{
 		Type: "notify_player",
@@ -291,6 +307,7 @@ func (s *SocketServer) MessageHandler(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }
 
@@ -298,6 +315,7 @@ func (s *SocketServer) NotifyHandler(w http.ResponseWriter, r *http.Request) {
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	apiKey := r.Context().Value("apiKey").(*middleware.APIKey)
 	game, err := s.GetGame(apiKey.Key)
@@ -311,6 +329,7 @@ func (s *SocketServer) NotifyHandler(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }
 
@@ -399,6 +418,7 @@ func (s *SocketServer) ResetHandler(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }
 

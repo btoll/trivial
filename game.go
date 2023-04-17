@@ -107,10 +107,6 @@ func (g *Game) Bench(p *Player) error {
 	}
 	g.Players = remove(g.Players, n)
 	g.Benched = append(g.Benched, player)
-	err := player.Socket.Close()
-	if err != nil {
-		return err
-	}
 	return nil
 }
 

@@ -180,6 +180,7 @@ document.addEventListener("DOMContentLoaded", event => {
                 login.classList.remove("hide");
                 scoreboard.classList.add("hide");
                 gameboard.classList.add("hide");
+                socket.close();
                 break;
 
             case "notify_all":
