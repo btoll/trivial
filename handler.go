@@ -238,6 +238,10 @@ func (s *SocketServer) DefaultHandler(socket *websocket.Conn) {
 	}
 }
 
+func (s *SocketServer) HealthHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (s *SocketServer) KillHandler(w http.ResponseWriter, r *http.Request) {
 	parsedUrl, err := url.Parse(fmt.Sprintf("%s", r.URL))
 	if err != nil {

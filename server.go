@@ -150,6 +150,7 @@ func (s *SocketServer) RegisterGame(game *Game) {
 func (s *SocketServer) StartGame(game *Game) {
 	s.Mux.Handle("/ws", websocket.Handler(s.DefaultHandler))
 	s.Mux.HandleFunc("/", s.BaseHandler)
+	s.Mux.HandleFunc("/health", s.HealthHandler)
 	s.Mux.HandleFunc("/kill", s.KillHandler)
 	s.Mux.HandleFunc("/message", s.MessageHandler)
 	s.Mux.HandleFunc("/notify", s.NotifyHandler)
