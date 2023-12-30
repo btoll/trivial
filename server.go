@@ -19,23 +19,19 @@ var templateFiles embed.FS
 // A socket server instance is set up to handle
 // multiple (concurrent) games.
 type SocketServer struct {
-	Cert     TLSCert
 	Location URL
 	Games    map[string]*Game
 	Tpl      *template.Template
 	Mux      *http.ServeMux
 }
 
-func NewSocketServer(url URL, cert TLSCert) *SocketServer {
-	fmt.Printf("created new websocket server `%s`\n", url)
-	generateCert(cert)
+func NewSocketServer(url URL) *SocketServer {
 	return &SocketServer{
-		Cert:     cert,
 		Location: url,
 		Games:    make(map[string]*Game),
-		// `_base.html` file **must** be the first file!!
+		// In templates/, the `_base.html` file **must** be the first file!!
 		// The underscore (_) is lexically before any lowercase alpha character,
-		// **do not** remove it!
+		// **do not** remove it!!!  Everything will break!!!
 		Tpl: template.Must(template.ParseFS(templateFiles, "templates/*.gohtml")),
 		Mux: http.NewServeMux(),
 	}
@@ -45,6 +41,14 @@ type Socket struct {
 	Protocol string
 	Domain   string
 	Port     int
+}
+
+func (s Socket) String() string {
+	return fmt.Sprintf("%s://%s:%d",
+		s.Protocol,
+		s.Domain,
+		s.Port,
+	)
 }
 
 type URL struct {
@@ -142,7 +146,6 @@ func (s *SocketServer) RegisterAndStartGame(game *Game) {
 // Registers a new game. A socket server can host multiple games.
 func (s *SocketServer) RegisterGame(game *Game) {
 	s.Games[game.Key.Key] = game
-	fmt.Printf("registered game `%s` with key `%s`\n", game.Name, game.Key.Key)
 }
 
 // Registers all the handlers with the new mux, adds the middleware
@@ -158,7 +161,6 @@ func (s *SocketServer) StartGame(game *Game) {
 	s.Mux.HandleFunc("/reset", s.ResetHandler)
 	s.Mux.HandleFunc("/scoreboard", s.ScoreboardHandler)
 	s.Mux.HandleFunc("/update_score", s.UpdateScoreHandler)
-	fmt.Printf("starting game `%s` on port 3000\n", game.Name)
 	//	log.Fatal(http.ListenAndServe(":3000", middleware.NewLogger(NewAuthenticator(&game.Key, s.Mux))))
 	log.Fatal(http.ListenAndServeTLS(":3000", "cert.pem", "key.pem", middleware.NewLogger(middleware.NewAuthenticator(&game.Key, s.Mux))))
 }

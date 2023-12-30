@@ -78,7 +78,7 @@ func generatePrivateKey(ecdsaCurve string, ed25519Key bool, rsaBits int) (any, e
 	return nil, nil
 }
 
-func generateCert(cert TLSCert) {
+func GenerateCert(cert TLSCert) {
 	if len(cert.Host) == 0 {
 		log.Fatalf("Missing required --host parameter")
 	}
