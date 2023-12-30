@@ -49,7 +49,7 @@ type Authenticator struct {
 // There needs to be a way to differentiate between a
 // logged in user and one that is trying to log in after
 // the game has expired, so breaking these token checks
-// into there respective parts makes sense and accomplishes
+// into their respective parts makes sense and accomplishes
 // this goal.
 // See [Game.CheckTokenExpiration] for more information.
 func (a *Authenticator) checkTokenEquality(token string) error {

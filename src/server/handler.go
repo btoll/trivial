@@ -1,4 +1,4 @@
-package trivial
+package server
 
 import (
 	"encoding/json"
@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/btoll/trivial/middleware"
+	"github.com/btoll/trivial/src/middleware"
 	"golang.org/x/net/websocket"
 )
 

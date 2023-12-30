@@ -1,4 +1,4 @@
-package trivial
+package server
 
 import (
 	"errors"
@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/btoll/trivial/middleware"
+	"github.com/btoll/trivial/src/middleware"
 	"golang.org/x/net/websocket"
 )
 

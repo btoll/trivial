@@ -1,4 +1,4 @@
-package trivial
+package server
 
 import (
 	"fmt"

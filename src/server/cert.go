@@ -5,7 +5,7 @@
 // Generate a self-signed X.509 certificate for a TLS server. Outputs to
 // 'cert.pem' and 'key.pem' and will overwrite existing files.
 
-package trivial
+package server
 
 import (
 	"crypto/ecdsa"
@@ -78,7 +78,7 @@ func generatePrivateKey(ecdsaCurve string, ed25519Key bool, rsaBits int) (any, e
 	return nil, nil
 }
 
-func generateCert(cert TLSCert) {
+func GenerateCert(cert TLSCert) {
 	if len(cert.Host) == 0 {
 		log.Fatalf("Missing required --host parameter")
 	}
